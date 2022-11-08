@@ -1,0 +1,200 @@
+filtering of NBS eDNA samples
+================
+Kimberly Ledger
+2022-11-07
+
+## some file setup
+
+working on the VM using the command prompt…
+
+1.  created folder in my home drive (later I will want to work direcly
+    in the edna folders): \$ mkdir
+    /home/kimberly.ledger/NBS_eDNA/trimmed
+
+2.  copy trimmed fastq files associated with the NBS data set into the
+    new folder: \$ cp
+    /genetics/edna/workdir/nbs_uas_cookinlet/trimmed/e00{611..683}\*.fastq
+    /home/kimberly.ledger/NBS_eDNA/trimmed/
+
+3.  also copy the PCR control samples: \$ cp
+    /genetics/edna/workdir/nbs_uas_cookinlet/trimmed/PCR\*.fastq
+    /home/kimberly.ledger/NBS_eDNA/trimmed
+
+## access Rstudio on the VM
+
+- access the Rstudio server here: <http://161.55.97.134:8787/>
+- Type in username and pw associated with VM
+
+## follow the DADA2 pipeline for filtering
+
+- see: <https://benjjneb.github.io/dada2/tutorial.html>
+
+install DADA2 (if necessary)
+
+``` r
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+#BiocManager::install("dada2", version = "3.16")
+```
+
+load packages
+
+``` r
+library(dada2)
+```
+
+name filepath and check correct files are there
+
+``` r
+path <- "/home/kimberly.ledger/NBS_eDNA/trimmed/"
+head(list.files(path))
+```
+
+create lists for the forward and reverse fastq files
+
+``` r
+# Forward and reverse fastq filenames have format: SAMPLENAME-N_SX_R1.fastq and SAMPLENAME-N_SX_R2.fastq
+fnFs <- sort(list.files(path, pattern="_R1.fastq", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern="_R2.fastq", full.names = TRUE))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+```
+
+## inspect read quality
+
+visualize quality of forward reads
+
+``` r
+plotQualityProfile(fnFs[1:2])
+```
+
+visualize quality of reverse reads
+
+``` r
+plotQualityProfile(fnRs[1:2])
+```
+
+based on the quality profiles, i will try out truncating the forward
+read at position 115 and the reverse read at postion 100
+
+## filter and trim
+
+assign filenames
+
+``` r
+# Place filtered files in filtered/ subdirectory
+filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
+names(filtFs) <- sample.names
+names(filtRs) <- sample.names
+```
+
+Use standard filtering parameters: maxN=0 (DADA2 requires no Ns),
+truncQ=2, rm.phix=TRUE and maxEE=2.
+
+``` r
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(115,100),
+              maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+              compress=TRUE, multithread=FALSE) # On Windows set multithread=FALSE
+head(out)
+```
+
+this seems to have worked alright…
+
+## learn the error rates
+
+this takes a few minutes to run
+
+``` r
+errF <- learnErrors(filtFs, multithread=TRUE)
+errR <- learnErrors(filtRs, multithread=TRUE)
+```
+
+plot
+
+``` r
+plotErrors(errR, nominalQ=TRUE)
+```
+
+this shows the error rates for each possible nucleotide transition. the
+red lines are the expected error rates. just check that the estimated
+error rates (black lines) are a good fit to the observed rates (points).
+
+## apply the sample inference to the filtered and trimmed reads
+
+``` r
+dadaFs <- dada(filtFs, err=errF, multithread=TRUE)
+dadaRs <- dada(filtRs, err=errR, multithread=TRUE)
+```
+
+take a look at the output
+
+``` r
+dadaFs[[1]]
+```
+
+## merge paired reads
+
+``` r
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+```
+
+Inspect the merger data.frame from the first sample
+
+``` r
+head(mergers[[1]])
+```
+
+this seems to have worked okay
+
+## construct sequence table
+
+``` r
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+```
+
+Inspect distribution of sequence lengths
+
+``` r
+table(nchar(getSequences(seqtab)))
+```
+
+Remove sequences that are much longer or shorter than expected
+
+``` r
+seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% 165:175]
+```
+
+Remove chimeras
+
+``` r
+seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=TRUE, verbose=TRUE)
+dim(seqtab.nochim)
+sum(seqtab.nochim)/sum(seqtab2)
+```
+
+Track reads through the pipeline
+
+``` r
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+# If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
+**come back and re-evaluate read processing at a later time** there some
+big cuts of reads during merging and removing chimeras steps
+
+## export for taxonomic identification
+
+we will want to use the “seqtab.nochim” ASV table for taxonomic analyses
+
+``` r
+write.csv(seqtab.nochim, "/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/seqtab.csv")
+```
+
+note: every time this script is ran, new fastq files are written to the
+filtered folder…
