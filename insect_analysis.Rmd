@@ -17,8 +17,9 @@ library(insect)
 ```
 
 read in the data (ASV table from DADA2)
+make sure sample names are designated as row names, and not in their own column 
 ```{r}
-seqs <- read.csv("/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/seqtab.csv")
+seqs <- read.csv("/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/seqtab.csv", row.names = 1)
 ```
 
 assign taxon IDs to the DADA2 output
@@ -28,24 +29,41 @@ x <- char2dna(colnames(seqs))
 names(x) <- paste0("ASV", seq_along(x))
 ```
 
-the MiFish classifier from the insect tutorial... 
+download the MiFish classifier from the insect tutorial locally (had to do this offsite) and then copy to the VM using the command prompt:  scp Downloads/classifier.rds kimberly.ledger@161.55.97.134:/home/kimberly.ledger/NBS_eDNA 
 ```{r}
-download.file("https://www.dropbox.com/s/fv3dpvws6zjvtib/classifier.rds?dl=1", 
-              destfile = "/home/kimberly.ledger/NBS_eDNA/classifier.rds", mode = "wb")
+classifier <- readRDS("/home/kimberly.ledger/NBS_eDNA/classifier.rds")
+classifier
+names(attributes(classifier))
 ```
 
-**doesn't download :(**
-
-trying another classifier for MiFish...
-
-install the RDP classifier:
-
-* download classifier from here: https://sourceforge.net/projects/rdp-classifier/
-* then copy into VM using the command prompt:  scp rdp_classifier_2.13.zip kimberly.ledger@161.55.97.134:/home/kimberly.ledger/NBS_eDNA 
-* now working in the VM, decompress: unzip rdp_classifier_2.13.zip
-
-load classifier
+classify 
+* this takes around a minute to run 
 ```{r}
-classifier <- readRDS("/home/kimberly.ledger/NBS_eDNA/rdp_classifier_2.13/dist/classifier.jar")
+my_class <- classify(x, classifier, threshold = 0.8)
 ```
-hmmm... so this classifier is a java file and i'm not sure how to proceed with using it... 
+
+if needed, remove column names that overwhelm the ASV table when printed... 
+```{r}
+colnames(seqs) <- NULL
+```
+
+transpose and bind the ASV table to the table of taxonomic information
+```{r}
+my_class_bind <- cbind(my_class, t(seqs))
+```
+
+Any sequences that return exact hits with at least one training sequence (or near matches if ping = 0.99 or similar) are assigned a score of NA
+
+create an aggregated table that includes only one row for each unique taxon
+```{r}
+taxa <- aggregate(my_class_bind[3:12], my_class_bind["taxID"], head, 1)
+counts <- aggregate(my_class_bind[13:ncol(my_class_bind)], my_class_bind["taxID"], sum)
+my_class_short <- merge(taxa, counts, by = "taxID")
+```
+
+output taxonomic identification 
+```{r}
+write.csv(my_class_short, "taxon_table.csv")
+```
+
+
