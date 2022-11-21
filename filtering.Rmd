@@ -178,3 +178,13 @@ write.csv(seqtab.nochim, "/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/seqtab.csv")
 
 note: every time this script is ran, new fastq files are written to the filtered folder... 
 
+
+## also export the seqtab as a Fasta
+```{r}
+sq <- getSequences(seqtab)
+id <- paste0("Abundance=", colSums(seqtab))
+names(sq) <- id
+library(dada2)
+writeFASTA(sq, file="/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/myasvs.fasta")
+```
+
