@@ -193,8 +193,51 @@ big cuts of reads during merging and removing chimeras steps
 we will want to use the “seqtab.nochim” ASV table for taxonomic analyses
 
 ``` r
-write.csv(seqtab.nochim, "/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/seqtab.csv")
+#write.csv(seqtab.nochim, "/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/seqtab.csv")
 ```
 
 note: every time this script is ran, new fastq files are written to the
 filtered folder…
+
+## also export the seqtab as a Fasta
+
+``` r
+sq <- getSequences(seqtab.nochim)
+id <- paste0(">ASV", 1:length(sq))
+names(sq) <- id
+
+library(dada2)
+#writeFASTA(sq, file="/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/myasvs.fasta")
+
+#sq_test <- sq[1:2]
+#writeFASTA(sq_test, file="/home/kimberly.ledger/NBS_eDNA/NBS_eDNA/myasvs_test.fasta")
+```
+
+## and export the seqtab table with the numbered ASVs headers that correspond to those output in the FASTA file.
+
+``` r
+# Make map between brief names and full sequences
+briefToSeq <- colnames(seqtab.nochim)
+names(briefToSeq) <- paste0("ASV", seq(ncol(seqtab.nochim))) # Seq1, Seq2, ...
+# Make new sequence table with brief names
+st.brief <- seqtab.nochim
+colnames(st.brief) <- names(briefToSeq)
+
+# export the seq table with brief names:
+#write.csv(st.brief, file="MiFish_ASVtable.csv")
+```
+
+## create table of ASV labels and ASV sequences
+
+``` r
+seqtab.nochim <- read.csv("seqtab.csv")
+
+asv <- colnames(seqtab.nochim)
+asv_seq <- asv[-1]
+
+asv_id <- paste0("ASV", 1:length(asv_seq))
+
+asv_table <- data.frame(asv_seq, asv_id)
+
+#write.csv(asv_table, "asv_seq_table.csv")
+```

@@ -1,0 +1,58 @@
+---
+title: "blastn_vs_insect_asv_assignment"
+author: "Kimberly Ledger"
+date: "2022-12-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load libraries
+
+```{r}
+library(tidyverse)
+```
+
+## read in asv tables 
+```{r}
+#asv seq and asv id 
+asv_table <- read.csv("asv_seq_table.csv") %>%
+  select(!X) %>%
+  rename(ASV = asv_id) 
+
+#asv id and blastn taxonomic assignment 
+taxon_blastn <- read.csv("asv_taxonomy_blastn.csv") %>%
+  select(!X) %>%
+  rename(taxon_blastn = taxon) %>%
+  rename(taxonomic_level_blastn = taxonomic_level)
+
+#asv id and insect taxonomic assingment 
+taxon_insect <- read.csv("asv_taxonomy_insect.csv") %>%
+  select(!X) %>%
+  rename(ASV = representative) %>%
+  rename(taxon_insect = taxon) %>%
+  rename(taxonomic_level_insect = rank)
+```
+
+## join taxonomic assignments
+```{r}
+join <- taxon_insect %>%
+  left_join(taxon_blastn, by = "ASV")
+```
+
+
+## join the asv sequence 
+```{r}
+join_asv <- join %>%
+  left_join(asv_table, by = "ASV")
+```
+
+## export 
+```{r}
+write.csv(join_asv, "asv_taxonomy_comparison.csv", row.names = FALSE)
+```
+
+
+

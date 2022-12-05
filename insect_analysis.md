@@ -45,6 +45,15 @@ classify \* this takes around a minute to run
 my_class <- classify(x, classifier, threshold = 0.8)
 ```
 
+output this table for comparison with blastn taxonomy
+
+``` r
+asv_insect <- my_class %>%
+  select(representative, taxon, rank)
+
+write.csv(asv_insect, "asv_taxonomy_insect.csv")
+```
+
 if needed, remove column names that overwhelm the ASV table when
 printed…
 
@@ -73,5 +82,5 @@ my_class_short <- merge(taxa, counts, by = "taxID")
 output taxonomic identification
 
 ``` r
-write.csv(my_class_short, "taxon_table.csv")
+#write.csv(my_class_short, "taxon_table.csv")
 ```
