@@ -1,63 +1,65 @@
----
-title: "blastn taxonomic assigment of NBS ASV's"
-author: "Kimberly Ledger"
-date: "2022-12-01"
-output: github_document
----
+blastn taxonomic assigment of NBS ASV’s
+================
+Kimberly Ledger
+2022-12-01
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = FALSE)
-```
+## Run blast search on VM
 
-## Run blast search on VM 
+input = sequences from sequence tables in FASTA format (see final set up
+filtering for export of the seqtab as a fasta)
 
-input = sequences from sequence tables in FASTA format (see final set up filtering for export of the seqtab as a fasta)
-
-[kimberly.ledger@akc0ss-vu-134 NBS_eDNA]$ nohup blastn -db nt -query myasvs.fasta -perc_identity 96 -qcov_hsp_perc 100 -num_threads 10 -out blastnresults_out -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore sscinames staxids"
+\[<kimberly.ledger@akc0ss-vu-134> NBS_eDNA\]\$ nohup blastn -db nt
+-query myasvs.fasta -perc_identity 96 -qcov_hsp_perc 100 -num_threads 10
+-out blastnresults_out -outfmt “6 qseqid sseqid pident length mismatch
+gapopen qstart qend sstart send evalue bitscore sscinames staxids”
 
 ## Download taxonkit
 
-Instructions here: https://bioinf.shenwei.me/taxonkit/
+Instructions here: <https://bioinf.shenwei.me/taxonkit/>
 
-Essentially: 
+Essentially:
 
-Just download compressed executable file of your operating system (https://github.com/shenwei356/taxonkit/releases), and uncompress it with tar -zxvf *.tar.gz command or other tools. 
+Just download compressed executable file of your operating system
+(<https://github.com/shenwei356/taxonkit/releases>), and uncompress it
+with tar -zxvf \*.tar.gz command or other tools.
 
 And then copy to anywhere in the environment variable PATH:
 
-mkdir -p $HOME/bin/; cp taxonkit $HOME/bin/ 
+mkdir -p \$HOME/bin/; cp taxonkit \$HOME/bin/
 
 ## Use taxonkit to assign full taxonomic information to sequences
 
-To use this, you need to know which column in your BLAST output file contains the staxid (species tax id number). If using the syntax above, column 14 contains this info.
+To use this, you need to know which column in your BLAST output file
+contains the staxid (species tax id number). If using the syntax above,
+column 14 contains this info.
 
-cat blastnresults_out | taxonkit lineage -c -i 14 > 12s_blastn_tax.out
+cat blastnresults_out \| taxonkit lineage -c -i 14 \> 12s_blastn_tax.out
 
 reformat to modify the full lineage into the standard k;p;c;o;f;g;s
 
-taxonkit reformat 12s_blastn_tax.out -i 16 > 12s_blastn_taxlineage.txt
+taxonkit reformat 12s_blastn_tax.out -i 16 \> 12s_blastn_taxlineage.txt
 
 ## Now, take a look at the results
 
-this is code just slightly modified from Diana's "04-taxonomy-and-preliminary-analysis.Rmd" 
+this is code just slightly modified from Diana’s
+“04-taxonomy-and-preliminary-analysis.Rmd”
 
-```{r load-libraries}
+``` r
 library(dplyr)
 library(tidyr)
 library(stringr)
 library(ggplot2)
 ```
 
-```{r load-output-from-taxonkit}
+``` r
 taxonomy <-read.delim("12s_blastn_taxlineage.txt", header = FALSE, na.strings=c(""," ","NA"))
 
 head(taxonomy)
 ```
 
-
 # clean up the header a bit
 
-```{r}
+``` r
 # use the full taxonomy rather than the seq id to collapse identical entries
 tax_df <- taxonomy %>%
   filter(V4 > 100) %>% # make sure all retained matches are >100 bp
@@ -70,17 +72,16 @@ tax_df <- taxonomy %>%
   #filter(perc_id >= 98) # seems like some of the matches below 98% are dubious (jellyfish and herring <1% different??)
 ```
 
-```{r how-many-total-ASVs-w-taxonomy}
+``` r
 tax_df %>% 
   ungroup() %>%
   select(qseqid) %>%
   unique()
 ```
 
-
 ### taxonomy clean-up
 
-```{r}
+``` r
 # find sscinames that include numbers or "sp."
 tax_df %>%
   filter(str_detect(sscinames, " x "),
@@ -89,17 +90,16 @@ tax_df %>%
          sscinames != "Salvelinus fontinalis x Salvelinus malma")
 ```
 
-```{r}
+``` r
 # formatting the taxonomy variables
 taxon_df <- tax_df %>%
   filter(str_detect(taxonomy, ";")) %>%
   separate(taxonomy, into=c("kingdom", "phylum", "class", "order", "family", "genus", "species"), sep = ";")
-
 ```
 
-
 Manually dealing with messy hybrid data:
-```{r}
+
+``` r
 fixed_tax_df <- taxon_df %>%
   ungroup() %>%
   mutate(species = ifelse(str_detect(species, " x "), NA, species)) %>%
@@ -126,32 +126,30 @@ fixed_tax_df %>%
 
 ## Sort and clean-up the results based on % identity
 
-```{r total-n-seqs}
+``` r
 # how many total sequences?
 fixed_tax_df %>%
   select(qseqid) %>%
   unique()
 ```
 
-There are four categories:
-1. sequences that match a single species unambiguously (the minority)
+There are four categories: 1. sequences that match a single species
+unambiguously (the minority)
 
 Sequences that match multiple species are divided in three categories:
-2. top matches > 2% identity than second-ranked matches
-3. top matches < 2% identity than second-ranked matches
-4. Multiple top matches with the same % identity
+2. top matches \> 2% identity than second-ranked matches 3. top matches
+\< 2% identity than second-ranked matches 4. Multiple top matches with
+the same % identity
 
-```{r}
+``` r
 # 1. sequences that are unambiguously a single species
 single_spp_seqs <- fixed_tax_df %>% 
   group_by(qseqid) %>%
   add_tally(name = "n_taxa") %>%
   filter(n_taxa == 1)
-  
 ```
 
-
-```{r}
+``` r
 # remove the single-species seqs from the dataframe and then rank the hits by % identity for the remaining seqs
 seq_id_diff <- fixed_tax_df %>%
   anti_join(., single_spp_seqs) %>%
@@ -172,13 +170,19 @@ seq_id_diff %>%
   filter(diff > 0)
 ```
 
-Now I have the single best entry for each species for each sequence ranked and with the difference between the first and second ranked entries calculated.
+Now I have the single best entry for each species for each sequence
+ranked and with the difference between the first and second ranked
+entries calculated.
 
-For sequences with multiple top hits, where the difference between ranked taxa = 0, I will end up defaulting to genus- or family-level ID (or carrying the individual species info around in some capacity). I will do the same for any sequences where the difference betweeen the first and second ranked taxa is < 2%.
+For sequences with multiple top hits, where the difference between
+ranked taxa = 0, I will end up defaulting to genus- or family-level ID
+(or carrying the individual species info around in some capacity). I
+will do the same for any sequences where the difference betweeen the
+first and second ranked taxa is \< 2%.
 
+Figure out which differences are \> 2% and eliminate those first?
 
-Figure out which differences are > 2% and eliminate those first?
-```{r}
+``` r
 # filter out any taxa that are >2% less matching identity than the top taxonomic hit for a given sequence
 to_remove_low_perc_hits <- seq_id_diff %>%
   ungroup() %>%
@@ -189,7 +193,7 @@ keepers <- seq_id_diff %>%
   anti_join(to_remove_low_perc_hits)
 ```
 
-```{r}
+``` r
 # this data frame includes only those taxonomic hits that should be considered.
 # so now I need to determine whether they should be assigned to genus, family, order, etc. 
 singletons <- keepers %>%
@@ -309,9 +313,9 @@ single_kingdom <- keepers %>%
   mutate(taxon = kingdom)
 ```
 
-
 Modify the singleton_df to include the right variable headers
-```{r}
+
+``` r
 single_spp <- singleton_df %>%
   select(-perc_id, -length, -sscinames, -n_taxa) %>%
   mutate(taxonomic_level = "species") %>%
@@ -321,14 +325,14 @@ single_spp %>%
     filter(str_detect(species, "sapiens"))
 ```
 
-```{r}
+``` r
 # recombine the full data set now that the appropriate level of taxonomy has been determined
 sorted_tax_df <- bind_rows(single_kingdom, single_phylum, single_class, single_order, single_family, single_genus, single_spp)
 ```
 
-
 Create output taxonomy data frames
-```{r}
+
+``` r
 uncollapsed_taxonomy <- sorted_tax_df %>%
   select(-top_perc, -id_rank) %>%
   unique()
@@ -351,18 +355,16 @@ collapsed_taxonomy <- uncollapsed_taxonomy %>%
 # no remaining issues with NAs
 ```
 
+remove “\<” from qseqid in collapsed taxonomy
 
-remove "<" from qseqid in collapsed taxonomy
-```{r}
+``` r
 collapsed_taxonomy2 <- collapsed_taxonomy %>% 
   separate(qseqid, c("x", "ASV")) %>%
   select(!x)
 ```
 
+output taxonomic assignment of AVS’s
 
-output taxonomic assignment of AVS's
-```{r}
+``` r
 write.csv(collapsed_taxonomy2, "asv_taxonomy_blastn.csv")
 ```
-
-
