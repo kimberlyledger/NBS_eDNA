@@ -2,8 +2,11 @@
 title: "blastn_vs_insect_asv_assignment"
 author: "Kimberly Ledger"
 date: "2022-12-05"
-output: html_document
+output: github_document
 ---
+
+
+This script compares the ASV taxonomic assignment for the 2021 NBS samples using 12S MiFish primers  
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,6 +19,7 @@ library(tidyverse)
 ```
 
 ## read in asv tables 
+these tables were produced in "filtering.Rmd", "blastn_taxonomy_and_analysis.Rmd" and "insect_analysis.Rmd" scripts
 ```{r}
 #asv seq and asv id 
 asv_table <- read.csv("asv_seq_table.csv") %>%
@@ -49,10 +53,241 @@ join_asv <- join %>%
   left_join(asv_table, by = "ASV")
 ```
 
-## export 
+## export for use in excel, etc.  
 ```{r}
 write.csv(join_asv, "asv_taxonomy_comparison.csv", row.names = FALSE)
 ```
+
+
+## summarize asv's 
+
+order of taxonomic rankings:
+*no rank
+*class
+*superorder 
+*order
+*suborder
+*infraorder
+*superfamily
+*family
+*subfamily
+*genus
+*species
+*subspecies
+
+```{r}
+insect_asv_summary <- join %>%
+  group_by(taxonomic_level_insect) %>%
+  summarise(count = n())
+
+insect_asv_summary$list <- c(2, 8, 10, 6, 1, 11, 9, 5, 12, 7, 3)
+
+insect_asv_summary <- insect_asv_summary%>%
+  arrange(list) %>%
+  select(!list) %>%
+  rename(taxonomic_level = taxonomic_level_insect) %>%
+  rename(count_insect = count)
+
+#insect_asv_summary
+```
+
+```{r}
+blast_asv_summary <- join %>%
+  group_by(taxonomic_level_blastn) %>%
+  summarise(count = n())
+
+blast_asv_summary$taxonomic_level_blastn[6] <- "no rank"
+
+blast_asv_summary$list <- c(2, 4, 5, 3, 6 , 1)
+
+blast_asv_summary <- blast_asv_summary %>%
+  arrange(list) %>%
+  select(!list) %>%
+  rename(taxonomic_level = taxonomic_level_blastn) %>%
+  rename(count_blast = count)
+
+#blast_asv_summary
+```
+
+
+asv table 
+```{r}
+asv_summ <- insect_asv_summary %>%
+  left_join(blast_asv_summary, by = "taxonomic_level") 
+asv_summ
+```
+
+
+taxonomy table 
+
+```{r}
+tax_insect_sum <- taxon_insect %>%
+  group_by(taxonomic_level_insect) %>%
+  summarise(count_unique = n_distinct(taxon_insect))
+
+tax_insect_sum$list <- c(2, 8, 10, 6, 1, 11, 9, 5, 12, 7, 3)
+
+tax_insect_sum <- tax_insect_sum %>%
+  arrange(list) %>%
+  select(!list) %>%
+  rename(taxonomic_level = taxonomic_level_insect) %>%
+  rename(count_insect = count_unique)
+```
+
+
+```{r}
+tax_blast_sum <- taxon_blastn %>%
+  group_by(taxonomic_level_blastn) %>%
+  summarise(count_unique = n_distinct(taxon_blastn))
+
+tax_blast_sum$list <-  c(2, 4, 5, 3, 6)
+
+tax_blast_sum <- tax_blast_sum %>%
+  arrange(list) %>%
+  select(!list) %>%
+  rename(taxonomic_level = taxonomic_level_blastn) %>%
+  rename(count_blast = count_unique)
+```
+
+
+taxon table 
+```{r}
+taxon_summ <- tax_insect_sum %>%
+  left_join(tax_blast_sum, by = "taxonomic_level")
+taxon_summ
+```
+
+
+## spp of interest for insect 
+add up the number of ASV's for species of interest 
+```{r}
+asv_per_spp <- taxon_insect %>%
+  filter(taxonomic_level_insect == "species") %>%
+  group_by(taxon_insect) %>%
+  summarize(count = n())
+asv_per_spp
+
+#filter(asv_per_spp, taxon_insect %in% c("Eleginus gracilis", "Gadus chalcogrammus", "Gadus macrocephalus"))
+```
+
+in my quick fishbase search of the species list,some species have records from Pacific near SE AK, but not from the Bering Sea... 
+and Ictalurus punctatus (Channel catfish) and Micropterus salmoides (Largemouth black bass) and the non-fish are contamination(?)
+
+
+
+add up the number of ASV's for genera
+```{r}
+asv_per_genus <- taxon_insect %>%
+  filter(taxonomic_level_insect == "genus") %>%
+  group_by(taxon_insect) %>%
+  summarize(count = n())
+asv_per_genus
+
+#filter(asv_per_genus, taxon_insect %in% c("Gadus"))
+```
+
+add up the number of ASV's for families 
+```{r}
+asv_per_family <- taxon_insect %>%
+  filter(taxonomic_level_insect == "family") %>%
+  group_by(taxon_insect) %>%
+  summarize(count = n())
+asv_per_family
+
+#filter(asv_per_family, taxon_insect %in% c("Gadidae"))
+```
+
+
+## spp of interest for blastn 
+add up the number of ASV's for species of interest 
+```{r}
+asv_per_spp <- taxon_blastn %>%
+  filter(taxonomic_level_blastn == "species") %>%
+  group_by(taxon_blastn) %>%
+  summarize(count = n())
+asv_per_spp
+
+#filter(asv_per_spp, taxon_blastn %in% c("Eleginus_gracilis"))
+```
+
+add up the number of ASV's for genera
+```{r}
+asv_per_genus <- taxon_blastn %>%
+  filter(taxonomic_level_blastn == "genus") %>%
+  group_by(taxon_blastn) %>%
+  summarize(count = n())
+asv_per_genus
+
+#filter(asv_per_genus, taxon_insect %in% c("Gadus"))
+```
+
+add up the number of ASV's for families 
+```{r}
+asv_per_family <- taxon_blastn %>%
+  filter(taxonomic_level_blastn == "family") %>%
+  group_by(taxon_blastn) %>%
+  summarize(count = n())
+asv_per_family
+
+#filter(asv_per_family, taxon_insect %in% c("Gadidae"))
+```
+
+
+## create an output for all ASV's associated with Gadidae for taking a look at in Geneious
+
+using function from here: https://github.com/lrjoshi/FastaTabular
+
+TabularToFasta
+```{r}
+######################### Tabular format to Fasta format###############################
+
+#this is a function to convert tabular fasta into plain fasta file
+#first column should be squence names
+#second column should be sequence 
+
+TabularToFasta <- function (filename){
+  file <- read.csv (file=filename, header=TRUE)
+  
+  file = as.data.frame(file)
+  #delete if any existing file 
+  
+  unlink(c("dna_fasta.fasta"), force=TRUE)
+  
+  #give output filename
+  
+  sink("dna_fasta.fasta")
+  
+  for (i in 1:nrow(file)){
+    name = paste0(">",file[i,1])
+    sequence = paste(file[i,2])
+    cat(name,sep="\n")
+    cat(sequence,sep="\n")
+  }
+  
+  #this is sink all the console output to the file 
+  sink()
+  
+}
+
+#usage 
+#TabularToFasta("gene.csv")
+```
+
+
+```{r}
+gadidae <- join_asv %>%
+  filter(taxon_blastn == "Gadidae") %>%
+  select(ASV, asv_seq)
+
+write.csv(gadidae, "gadidae_asv.csv")
+
+TabularToFasta("gadidae_asv.csv")
+## this saves the fasta as "dna_fasta.fasta"
+```
+
+
+
+
 
 
 
