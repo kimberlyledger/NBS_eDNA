@@ -1,0 +1,69 @@
+---
+title: "get_BASIS_data"
+author: "Kimberly Ledger"
+date: "2022-12-15"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+## this script queries the BASIS database from AKFIN for all 2021 data from stations where eDNA samples were collected 
+
+## load libraries
+```{r}
+library(tidyverse)
+```
+
+## first let's get a list of the stations from the eDNA metadata 
+```{r}
+meta <- read.csv("NBS_2021_metadata_kjl.csv") %>%
+  select(!X) %>%
+  arrange(Sample_ID) %>%
+  filter(Station_ID != "NA")
+
+eDNA_stations <- unique(meta$Station_ID)
+eDNA_stations
+```
+
+## download data
+
+```{r}
+library(httr) #for accessing web services
+library(tidyverse) #for converting data into exportable data frame
+
+
+#Lookup data from 2021
+data2021 <- httr::content(
+  httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/basis_catch_spp_lh_0'), 
+  type = "application/json") %>% 
+    bind_rows%>%
+  filter(SAMPLEYEAR=="2021")
+```
+
+
+## the last three digits of the "STATIONID" corresponds to the station number 
+```{r}
+data2021_split <- data2021 %>%
+  separate(STATIONID, into= c(NA, "Station"), sep = -3, remove = FALSE, convert = TRUE)
+```
+
+## filter by station number 
+```{r}
+data2021_stations <- data2021_split %>%
+  filter(Station == eDNA_stations)
+```
+## make a summary table 
+```{r}
+catch_summary <- data2021_stations %>%
+  group_by(Station, SPECIESNAME) %>%
+  summarise(totalcatch = sum(TOTALCATCHNUM),
+            totalweight = sum(TOTALCATCHWT)) %>%
+  filter(totalcatch != 0)
+
+catch_summary
+```
+
+
+
