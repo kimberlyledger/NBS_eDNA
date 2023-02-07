@@ -9,6 +9,15 @@ load libraries
 library(tidyverse)
 ```
 
+    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
+    ## ✔ ggplot2 3.4.0      ✔ purrr   0.3.5 
+    ## ✔ tibble  3.1.8      ✔ dplyr   1.0.10
+    ## ✔ tidyr   1.2.1      ✔ stringr 1.4.1 
+    ## ✔ readr   2.1.3      ✔ forcats 0.5.2 
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+
 read in taxonomic identification table
 
 ``` r
@@ -30,8 +39,39 @@ read_summary <- taxons %>%
   group_by(rank, taxon) %>%
   summarize(sum = sum(c_across(e00611.1:e00683.3))) %>%
   arrange(desc(sum))
+```
+
+    ## `summarise()` has grouped output by 'rank'. You can override using the
+    ## `.groups` argument.
+
+``` r
 head(read_summary, n=20)
 ```
+
+    ## # A tibble: 20 × 3
+    ## # Groups:   rank [6]
+    ##    rank        taxon                       sum
+    ##    <chr>       <chr>                     <int>
+    ##  1 species     Gadus chalcogrammus      489990
+    ##  2 species     Clupea pallasii          250669
+    ##  3 species     Oncorhynchus tshawytscha 232573
+    ##  4 genus       Oncorhynchus             174217
+    ##  5 species     Oncorhynchus keta        105283
+    ##  6 species     Oncorhynchus kisutch      69327
+    ##  7 family      Gadidae                   54982
+    ##  8 genus       Ammodytes                 53943
+    ##  9 species     Oncorhynchus gorbuscha    53480
+    ## 10 genus       Limanda                   40967
+    ## 11 suborder    Clupeoidei                34368
+    ## 12 species     Gadus macrocephalus       20398
+    ## 13 genus       Gadus                     15709
+    ## 14 species     Oncorhynchus nerka        12579
+    ## 15 no rank     Clupeocephala             10174
+    ## 16 family      Pleuronectidae             9569
+    ## 17 superfamily Centrarchoidei             7262
+    ## 18 species     Micropterus salmoides      5285
+    ## 19 species     Cymatogaster aggregata     5282
+    ## 20 species     Lumpenus fabricii          4375
 
 read in sample metadata
 
@@ -64,6 +104,112 @@ df <- meta %>%
 head(df)
 ```
 
+    ##   Sort Extraction_ID Sample_ID Station_ID Depth Sample_blank Extaction_blank
+    ## 1  611        e00611  e00611.1          2    10           No              No
+    ## 2  611        e00611  e00611.2          2    10           No              No
+    ## 3  611        e00611  e00611.3          2    10           No              No
+    ## 4  612        e00612  e00612.1          2    10           No              No
+    ## 5  612        e00612  e00612.2          2    10           No              No
+    ## 6  612        e00612  e00612.3          2    10           No              No
+    ##   Sample_Date Ext_Initials  Ext_Date Ext_Plate root Cyprinidae Carassius
+    ## 1   8/30/2021           MP 2/23/2022    Jan-22    0          0         0
+    ## 2   8/30/2021           MP 2/23/2022    Jan-22    0          0         0
+    ## 3   8/30/2021           MP 2/23/2022    Jan-22    0          0         0
+    ## 4   8/30/2021           MP 2/23/2022    Jan-22    0          0         0
+    ## 5   8/30/2021           MP 2/23/2022    Jan-22    0          0         0
+    ## 6   8/30/2021           MP 2/23/2022    Jan-22    0          0         0
+    ##   Ictaluridae Ictalurus Ictalurus.punctatus Oncorhynchus Oncorhynchus.gorbuscha
+    ## 1           0         0                   0            0                      0
+    ## 2           0         0                   0            0                      0
+    ## 3           0         0                   0            0                      0
+    ## 4           0         0                   0            0                      9
+    ## 5           0         0                   0            0                      0
+    ## 6           0         0                   0            0                      0
+    ##   Oncorhynchus.keta Oncorhynchus.kisutch Oncorhynchus.nerka Gadidae
+    ## 1                 0                    0                  0      88
+    ## 2                 0                    0                  0       0
+    ## 3                 0                    0                  0       0
+    ## 4                 0                    0                  0       0
+    ## 5                 0                    0                  0       0
+    ## 6                 0                    0                  0       0
+    ##   Eleginus.gracilis Gadus Cottidae Myoxocephalus Myoxocephalus.scorpius
+    ## 1                 0     0        0             0                      0
+    ## 2                 0   109        0             0                      0
+    ## 3                 0     0        0             0                      0
+    ## 4                 0     0        0             0                      0
+    ## 5                 0     0        0             0                      0
+    ## 6                 0     0        0             0                      0
+    ##   Cottioidei Zoarcales Lycodes Pleuronectidae Limanda Hippoglossus
+    ## 1          0         0       0              0       0            0
+    ## 2          0         0       0              0       0            0
+    ## 3          0         0       0              0       0            0
+    ## 4          0         0       0              0       0            0
+    ## 5          0         0       0              0      17            0
+    ## 6          0         0       0              0       0            0
+    ##   Micropterus.salmoides Clupea.pallasii Stichaeidae Mallotus.villosus
+    ## 1                     0               0           0                 0
+    ## 2                     0               0           0                 0
+    ## 3                     0               0           0                 0
+    ## 4                     0               0           0                 0
+    ## 5                     0               0           0                 0
+    ## 6                     0               0           0                 0
+    ##   Protacanthopterygii Cymatogaster.aggregata Tridentiger Gasterosteus.aculeatus
+    ## 1                   0                      0           0                      0
+    ## 2                   0                      0           0                      0
+    ## 3                   0                      0           0                      0
+    ## 4                   0                      0           0                      0
+    ## 5                   0                      0           0                      0
+    ## 6                   0                      0           0                      0
+    ##   Hexagrammos Oncorhynchus.tshawytscha Gadus.macrocephalus Ammodytes Pungitius
+    ## 1           0                        0                   0         0         0
+    ## 2           0                        0                   0         0         0
+    ## 3           0                        0                   0         0         0
+    ## 4           0                        0                   0         0         0
+    ## 5           0                        0                   0         0         0
+    ## 6           0                        0                   0      1940         0
+    ##   Syngnathus.leptorhynchus Actinopteri Clupeocephala Characiphysae
+    ## 1                        0           0             0             0
+    ## 2                        0           0             0             0
+    ## 3                        0           0             0             0
+    ## 4                        0           0             0             0
+    ## 5                        0           0             7             0
+    ## 6                        0           0             0             0
+    ##   Anoplopoma.fimbria Artedius.fenestralis Nautichthys.pribilovius
+    ## 1                  0                    0                       0
+    ## 2                  0                    0                       0
+    ## 3                  0                    0                       0
+    ## 4                  0                    0                       0
+    ## 5                  0                    0                       0
+    ## 6                  0                    0                       0
+    ##   Ammodytes.hexapterus Osmerus.mordax.dentex Gobionellinae Lycodinae
+    ## 1                    0                     0             0         0
+    ## 2                    0                     0             0         0
+    ## 3                    0                     0             0         0
+    ## 4                    0                     0             0         0
+    ## 5                    0                     0             0         0
+    ## 6                    0                     0             0         0
+    ##   Pleuronectes.quadrituberculatus Lumpenus.fabricii Gadus.chalcogrammus
+    ## 1                               0                 0                1737
+    ## 2                               0                 0                1776
+    ## 3                               0                 0                   0
+    ## 4                               0                 0                  18
+    ## 5                               0                 0                   0
+    ## 6                               0                 0                3071
+    ##   Clupeoidei Stomiatii Gadoidei Percomorphaceae Eupercaria Cottales
+    ## 1          0         0        0               0          0        0
+    ## 2          0         0        0               0          0        0
+    ## 3          0         0        0               0          0        0
+    ## 4          0         0        0               0          0        0
+    ## 5          0         0        0               0          0        0
+    ## 6          0         0        0               0          0        0
+    ##   Centrarchoidei Pungitius.sp..Brackish.type
+    ## 1              0                           0
+    ## 2              0                           0
+    ## 3              0                           0
+    ## 4              0                           0
+    ## 5              0                           0
+    ## 6              0                           0
+
 ## first, let’s take a look at the extraction blanks
 
 ``` r
@@ -89,6 +235,8 @@ ext.blank.taxon.long %>%
     x = "sample",
     title = "NBS extraction blanks")
 ```
+
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 well something went wrong with e00658.2…
 
@@ -173,6 +321,8 @@ samp.blank.taxon.long.station %>%
   )
 ```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
 how do we deal with many reads in samples that should be blanks…?
 
 ## now let’s look at the field samples
@@ -227,6 +377,8 @@ field.df %>%
   )
 ```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
 ### most sites just had samples collected at 10m depth, so let’s keep only 10m sample and combine by station
 
 ``` r
@@ -247,6 +399,8 @@ field.df %>%
     legend.title = element_blank()
   )
 ```
+
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 **note that station 23 had twice as many samples (18) from 10m as the
 others (9) and station 11 had less (6)** this plot is not standardized
@@ -275,6 +429,8 @@ field.df %>%
   )
 ```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
 ### let’s compare samples taken at different depth
 
 start with station 5
@@ -297,7 +453,11 @@ field.df %>%
     legend.position = "bottom",
     legend.title = element_blank()
   )
+```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+``` r
 field.df %>%
   filter(Station_ID == "5") %>%
   ggplot(aes(x=Depth, y=reads, fill=taxon)) +
@@ -316,6 +476,8 @@ field.df %>%
     legend.title = element_blank()
   )
 ```
+
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
 
 now with station 14
 
@@ -337,7 +499,11 @@ field.df %>%
     legend.position = "bottom",
     legend.title = element_blank()
   )
+```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+``` r
 field.df %>%
   filter(Station_ID == "14") %>%
   ggplot(aes(x=Depth, y=reads, fill=taxon)) +
@@ -356,6 +522,8 @@ field.df %>%
     legend.title = element_blank()
   )
 ```
+
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->
 
 and station 23
 
@@ -377,7 +545,11 @@ field.df %>%
     legend.position = "bottom",
     legend.title = element_blank()
   )
+```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+``` r
 field.df %>%
   filter(Station_ID == "23") %>%
   ggplot(aes(x=Depth, y=reads, fill=taxon)) +
@@ -396,6 +568,8 @@ field.df %>%
     legend.title = element_blank()
   )
 ```
+
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
 
 **twice as many samples taken from 10m as from 40m**
 
@@ -433,6 +607,8 @@ field.df.groups %>%
   )
 ```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
 ## plot proportion of reads for stations 8, 35, and 46
 
 ``` r
@@ -460,6 +636,8 @@ temp %>%
   )
 ```
 
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
 ``` r
 field.df %>%
   filter(Station_ID == "8" | Station_ID == "35" | Station_ID == "46") %>%
@@ -482,3 +660,5 @@ field.df %>%
     legend.title = element_blank()
   )
 ```
+
+![](prelim_analyses_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
