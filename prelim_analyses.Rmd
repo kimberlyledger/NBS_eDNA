@@ -6,7 +6,7 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = FALSE)
 ```
 
 load libraries
@@ -440,5 +440,57 @@ field.df.groups %>%
     legend.title = element_blank()
   )
 ```
+
+## plot proportion of reads for stations 8, 35, and 46
+
+```{r}
+temp <- field.df %>%
+  filter(Station_ID == "8" | Station_ID == "35" | Station_ID == "46") %>%
+  group_by(Sample_ID) %>%
+  mutate(sum = sum(reads)) %>%
+  mutate(prop = reads/sum)
+
+temp %>%
+  ggplot(aes(x=Sample_ID, y=prop, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  facet_grid(~Station_ID, scales = 'free') +
+  theme_bw() +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sampleID",
+    title = "NBS field samples")  +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+
+```
+
+```{r}
+field.df %>%
+  filter(Station_ID == "8" | Station_ID == "35" | Station_ID == "46") %>%
+  group_by(Station_ID, Extraction_ID) %>%
+  mutate(sum = sum(reads)) %>%
+  mutate(prop = reads/sum) %>%
+  ggplot(aes(x=Extraction_ID, y=prop, fill=taxon)) +
+  geom_bar(stat = "identity") + 
+  facet_grid(~Station_ID, scales = 'free') +
+  theme_bw() +
+  labs(
+    y = "proportion of sequencing reads",
+    x = "sampleID",
+    title = "NBS field samples")  +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 0.95),
+    legend.text = element_text(size = 8),
+    legend.key.size = unit(0.3, "cm"),
+    legend.position = "bottom",
+    legend.title = element_blank()
+  )
+```
+
 
 
