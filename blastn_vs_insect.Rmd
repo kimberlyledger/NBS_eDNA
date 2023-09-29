@@ -1,0 +1,68 @@
+---
+title: "blastn_v_insect"
+author: "Kimberly Ledger"
+date: "2022-12-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+load libraries
+```{r}
+library(tidyverse)
+```
+
+read in taxonomy table from blastn analysis
+read in taxonomy table from insect analysis
+```{r}
+nbs_blast <- read.csv("nbs_taxonomy_df.csv") %>%
+  mutate(sample = str_replace(sample, "_", "."))  #change "." to "_" om sample names 
+
+nbs_insect <- read.csv("taxon_table.csv")
+```
+
+reformat insect output to match nbs_blastn output
+```{r}
+nbs_insect_less <- nbs_insect %>%
+  select(!X:taxID) %>%
+  select(!score:species)
+
+nbs_insect_long <- nbs_insect_less %>%
+  pivot_longer(cols = 3:length(nbs_insect_less), names_to = "sample", values_to = "count") %>%
+  filter(count != 0) # remove entries with no reads
+```
+
+
+rename taxon columns 
+```{r}
+nbs_insect_long <- nbs_insect_long %>%
+  rename(taxon_insect = taxon) %>%
+  rename(count_insect = count)
+
+nbs_blast <- nbs_blast  %>%
+  rename(taxon_blastn = taxon) %>%
+  rename(count_blastn = count)
+```
+
+pivot longer 
+```{r}
+nbs_insect_wide <- nbs_insect_long %>%
+  select(!rank) %>%
+  pivot_wider(names_from = taxon_insect, values_from = count_insect) %>%
+  arrange(sample)
+
+nbs_blast_wide <- nbs_blast %>%
+  select(!ASV) %>%
+  select(!taxonomic_level) %>%
+  pivot_wider(names_from = taxon_blastn, values_from = count_blastn, values_fn = sum) %>%
+  arrange(sample)
+```
+
+
+
+
+
+

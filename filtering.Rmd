@@ -217,6 +217,8 @@ asv_id <- paste0("ASV", 1:length(asv_seq))
 asv_table <- data.frame(asv_seq, asv_id)
 
 #write.csv(asv_table, "asv_seq_table.csv")
+
+temp <- read.csv("MiFish_ASVtable.csv")
 ```
 
 

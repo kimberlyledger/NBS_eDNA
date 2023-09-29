@@ -277,7 +277,12 @@ TabularToFasta <- function (filename){
 ```{r}
 gadidae <- join_asv %>%
   filter(taxon_blastn == "Gadidae") %>%
-  select(ASV, asv_seq)
+  select(ASV, taxonomic_level_insect, taxon_insect, asv_seq) %>%
+  unite("ID", ASV:taxon_insect, remove = T)
+
+rownames(gadidae) <- gadidae$ID
+gadidae <- gadidae %>%
+  select(asv_seq)
 
 write.csv(gadidae, "gadidae_asv.csv")
 
